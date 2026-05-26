@@ -56,3 +56,38 @@ def profile_view(request):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def public_profile_view(request, username):
+    try:
+        user = User.objects.select_related('profile').get(username=username)
+    except User.DoesNotExist:
+        return Response({'error': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+    from blog.models import Article
+    articles = Article.objects.filter(author=user, status='published').values(
+        'id', 'title', 'slug', 'created_at'
+    )[:20]
+
+    xp_profile = None
+    achievements = []
+    try:
+        from gamification.models import UserXP, Achievement
+        from gamification.serializers import UserXPSerializer, AchievementSerializer
+        xp = UserXP.objects.filter(user=user).first()
+        if xp:
+            xp_profile = UserXPSerializer(xp, context={'request': request}).data
+        achievements = AchievementSerializer(
+            Achievement.objects.filter(user=user), many=True
+        ).data
+    except Exception:
+        pass
+
+    return Response({
+        'user': UserSerializer(user).data,
+        'xp_profile': xp_profile,
+        'achievements': achievements,
+        'articles': list(articles),
+    })

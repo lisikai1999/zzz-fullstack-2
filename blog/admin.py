@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tag, Article, Comment, ReadStat, Image
+from .models import Tag, Article, Comment, ReadStat, Image, ArticleCollaborator
 
 
 @admin.register(Tag)
@@ -31,3 +31,9 @@ class ReadStatAdmin(admin.ModelAdmin):
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
     list_display = ['alt_text', 'uploader', 'created_at']
+
+
+@admin.register(ArticleCollaborator)
+class ArticleCollaboratorAdmin(admin.ModelAdmin):
+    list_display = ['article', 'user', 'invited_by', 'permission', 'accepted', 'created_at']
+    list_filter = ['permission', 'accepted']

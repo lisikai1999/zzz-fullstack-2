@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-5xl mx-auto px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">草稿箱</h1>
-      <p class="text-gray-500">管理你的未发布文章</p>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">草稿箱</h1>
+      <p class="text-gray-500 dark:text-gray-400">管理你的未发布文章</p>
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
@@ -18,22 +18,22 @@
       <div
         v-for="draft in drafts"
         :key="draft.id"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-between"
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between"
       >
         <div class="flex-1">
-          <h3 class="text-lg font-medium text-gray-900">{{ draft.title }}</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ draft.title }}</h3>
           <p class="text-sm text-gray-400 mt-1">最后编辑于 {{ formatDate(draft.updated_at) }}</p>
         </div>
         <div class="flex gap-3">
           <router-link
             :to="`/editor/${draft.slug}`"
-            class="px-4 py-2 text-sm bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition"
+            class="px-4 py-2 text-sm bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition"
           >
             编辑
           </router-link>
           <button
             @click="deleteDraft(draft)"
-            class="px-4 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition"
+            class="px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
           >
             删除
           </button>

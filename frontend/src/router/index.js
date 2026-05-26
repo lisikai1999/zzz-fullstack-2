@@ -44,6 +44,22 @@ const routes = [
     component: () => import('../views/Drafts.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/leaderboard',
+    name: 'Leaderboard',
+    component: () => import('../views/Leaderboard.vue'),
+  },
+  {
+    path: '/profile/:username?',
+    name: 'Profile',
+    component: () => import('../views/Profile.vue'),
+  },
+  {
+    path: '/shared',
+    name: 'SharedArticles',
+    component: () => import('../views/SharedArticles.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

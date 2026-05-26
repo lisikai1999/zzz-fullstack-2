@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tag, Article, Comment, Image
+from .models import Tag, Article, Comment, Image, ArticleCollaborator
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -59,6 +59,8 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(), many=True, write_only=True, source='tags', required=False
     )
     comments = serializers.SerializerMethodField()
+    content = serializers.CharField(required=False, allow_blank=True)
+    title = serializers.CharField(required=True, allow_blank=False, max_length=200)
 
     class Meta:
         model = Article
@@ -86,3 +88,24 @@ class ImageSerializer(serializers.ModelSerializer):
         if request and obj.image:
             return request.build_absolute_uri(obj.image.url)
         return ''
+
+
+class ArticleCollaboratorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True, required=False)
+    user_display = serializers.CharField(source='user.username', read_only=True)
+    article_title = serializers.CharField(source='article.title', read_only=True)
+    invited_by_name = serializers.CharField(source='invited_by.username', read_only=True)
+
+    class Meta:
+        model = ArticleCollaborator
+        fields = ['id', 'article', 'username', 'user_display', 'invited_by_name',
+                  'article_title', 'permission', 'accepted', 'created_at']
+        read_only_fields = ['invited_by', 'accepted', 'article']
+
+    def validate_username(self, value):
+        if value:
+            try:
+                User.objects.get(username=value)
+            except User.DoesNotExist:
+                raise serializers.ValidationError('用户不存在')
+        return value

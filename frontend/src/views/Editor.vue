@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <div class="p-6 md:p-10">
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
           {{ isEditing ? '编辑文章' : '写新文章' }}
         </h1>
 
@@ -12,12 +12,12 @@
               v-model="form.title"
               type="text"
               placeholder="文章标题"
-              class="w-full text-2xl font-bold px-0 py-2 border-0 border-b-2 border-gray-100 focus:border-primary-500 outline-none"
+              class="w-full text-2xl font-bold px-0 py-2 border-0 border-b-2 border-gray-100 dark:border-gray-700 focus:border-primary-500 outline-none bg-transparent text-gray-900 dark:text-white"
             />
           </div>
 
           <div class="flex items-center gap-4">
-            <select v-model="form.status" class="px-4 py-2 border border-gray-200 rounded-lg outline-none">
+            <select v-model="form.status" class="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
               <option value="draft">草稿</option>
               <option value="published">发布</option>
             </select>
@@ -28,7 +28,7 @@
                 @keydown.enter.prevent="addTag"
                 type="text"
                 placeholder="输入标签后回车添加"
-                class="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
+                class="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
           </div>
@@ -37,30 +37,30 @@
             <span
               v-for="tag in selectedTags"
               :key="tag.id"
-              class="inline-flex items-center gap-1 text-sm bg-primary-50 text-primary-600 px-3 py-1 rounded-full"
+              class="inline-flex items-center gap-1 text-sm bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full"
             >
               {{ tag.name }}
               <button @click="removeTag(tag)" class="hover:text-red-500">&times;</button>
             </span>
           </div>
 
-          <div class="flex border-b border-gray-200 mb-4">
+          <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button
               @click="editorMode = 'rich'"
-              :class="['px-4 py-2 text-sm font-medium transition', editorMode === 'rich' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500']"
+              :class="['px-4 py-2 text-sm font-medium transition', editorMode === 'rich' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500 dark:text-gray-400']"
             >
               富文本
             </button>
             <button
               @click="editorMode = 'markdown'"
-              :class="['px-4 py-2 text-sm font-medium transition', editorMode === 'markdown' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500']"
+              :class="['px-4 py-2 text-sm font-medium transition', editorMode === 'markdown' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500 dark:text-gray-400']"
             >
               Markdown
             </button>
           </div>
 
-          <div v-if="editorMode === 'rich'" class="border border-gray-200 rounded-lg overflow-hidden">
-            <div v-if="editor" class="flex flex-wrap gap-1 p-2 border-b border-gray-100 bg-gray-50">
+          <div v-if="editorMode === 'rich'" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div v-if="editor" class="flex flex-wrap gap-1 p-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
               <button @click="editor.chain().focus().toggleBold().run()" :class="toolbarBtn(editor.isActive('bold'))">B</button>
               <button @click="editor.chain().focus().toggleItalic().run()" :class="toolbarBtn(editor.isActive('italic'))"><em>I</em></button>
               <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="toolbarBtn(editor.isActive('heading'))">H2</button>
@@ -68,19 +68,19 @@
               <button @click="editor.chain().focus().toggleBulletList().run()" :class="toolbarBtn(editor.isActive('bulletList'))">列表</button>
               <button @click="editor.chain().focus().toggleCodeBlock().run()" :class="toolbarBtn(editor.isActive('codeBlock'))">代码</button>
               <button @click="editor.chain().focus().toggleBlockquote().run()" :class="toolbarBtn(editor.isActive('blockquote'))">引用</button>
-              <button @click="insertImage" class="px-3 py-1 text-sm rounded hover:bg-gray-200">图片</button>
+              <button @click="insertImage" class="px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300">图片</button>
             </div>
-            <editor-content :editor="editor" class="min-h-[400px]" />
+            <editor-content :editor="editor" class="min-h-[400px] dark:text-white" />
           </div>
 
           <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <textarea
               v-model="form.content"
               placeholder="使用 Markdown 格式书写..."
-              class="w-full min-h-[400px] px-4 py-3 border border-gray-200 rounded-lg font-mono text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
+              class="w-full min-h-[400px] px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg font-mono text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             ></textarea>
             <div
-              class="prose prose-sm max-w-none p-4 border border-gray-200 rounded-lg overflow-auto bg-gray-50"
+              class="prose prose-sm dark:prose-invert max-w-none p-4 border border-gray-200 dark:border-gray-600 rounded-lg overflow-auto bg-gray-50 dark:bg-gray-700"
               v-html="markdownPreview"
             ></div>
           </div>
@@ -91,7 +91,7 @@
               type="text"
               placeholder="SEO 描述 (可选，160字以内)"
               maxlength="160"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none text-sm"
+              class="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg outline-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
 
@@ -104,6 +104,7 @@
               {{ saving ? '保存中...' : (form.status === 'published' ? '发布文章' : '保存草稿') }}
             </button>
             <span v-if="savedAt" class="text-sm text-green-500">已保存于 {{ savedAt }}</span>
+            <span v-if="autoSaveStatus" class="text-sm text-gray-400 dark:text-gray-500">{{ autoSaveStatus }}</span>
           </div>
         </div>
       </div>
@@ -129,6 +130,7 @@ const isEditing = computed(() => !!route.params.slug)
 const editorMode = ref('rich')
 const saving = ref(false)
 const savedAt = ref('')
+const autoSaveStatus = ref('')
 const tagInput = ref('')
 const selectedTags = ref([])
 const allTags = ref([])
@@ -141,6 +143,8 @@ const form = ref({
   meta_keywords: '',
 })
 
+const DRAFT_KEY = computed(() => `draft_${route.params.slug || 'new'}`)
+
 const editor = useEditor({
   extensions: [
     StarterKit,
@@ -151,6 +155,7 @@ const editor = useEditor({
   content: '',
   onUpdate: ({ editor: e }) => {
     form.value.content = e.getHTML()
+    scheduleDraftSave()
   },
 })
 
@@ -159,8 +164,56 @@ const markdownPreview = computed(() => {
 })
 
 function toolbarBtn(active) {
-  return ['px-3 py-1 text-sm rounded transition', active ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-200']
+  return ['px-3 py-1 text-sm rounded transition', active ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300']
 }
+
+let draftSaveTimeout = null
+function scheduleDraftSave() {
+  if (draftSaveTimeout) clearTimeout(draftSaveTimeout)
+  draftSaveTimeout = setTimeout(() => {
+    saveDraftToLocal()
+  }, 2000)
+}
+
+function saveDraftToLocal() {
+  const draftData = {
+    title: form.value.title,
+    content: form.value.content,
+    status: form.value.status,
+    meta_description: form.value.meta_description,
+    tags: selectedTags.value,
+    savedAt: new Date().toISOString(),
+  }
+  localStorage.setItem(DRAFT_KEY.value, JSON.stringify(draftData))
+  autoSaveStatus.value = '草稿已本地缓存'
+  setTimeout(() => { autoSaveStatus.value = '' }, 3000)
+}
+
+function loadDraftFromLocal() {
+  const saved = localStorage.getItem(DRAFT_KEY.value)
+  if (!saved) return false
+  try {
+    const data = JSON.parse(saved)
+    form.value.title = data.title || ''
+    form.value.content = data.content || ''
+    form.value.status = data.status || 'draft'
+    form.value.meta_description = data.meta_description || ''
+    if (data.tags) selectedTags.value = data.tags
+    if (editor.value) {
+      editor.value.commands.setContent(data.content || '')
+    }
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+function clearLocalDraft() {
+  localStorage.removeItem(DRAFT_KEY.value)
+}
+
+watch(() => form.value.title, scheduleDraftSave)
+watch(() => form.value.meta_description, scheduleDraftSave)
 
 async function addTag() {
   const name = tagInput.value.trim()
@@ -217,6 +270,7 @@ async function saveArticle() {
     }
 
     savedAt.value = new Date().toLocaleTimeString('zh-CN')
+    clearLocalDraft()
     if (!isEditing.value) {
       router.replace(`/editor/${response.data.slug}`)
     }
@@ -240,10 +294,12 @@ onMounted(async () => {
     if (editor.value) {
       editor.value.commands.setContent(data.content)
     }
+  } else {
+    loadDraftFromLocal()
   }
 
   autoSaveInterval = setInterval(() => {
-    if (form.value.title && form.value.status === 'draft') {
+    if (form.value.title && form.value.status === 'draft' && isEditing.value) {
       saveArticle()
     }
   }, 30000)
@@ -251,6 +307,10 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearInterval(autoSaveInterval)
+  if (draftSaveTimeout) clearTimeout(draftSaveTimeout)
+  if (form.value.title || form.value.content) {
+    saveDraftToLocal()
+  }
   if (editor.value) editor.value.destroy()
 })
 </script>

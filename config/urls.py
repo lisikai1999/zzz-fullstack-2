@@ -7,6 +7,7 @@ from blog.seo import sitemap_xml, robots_txt
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
+    path('api/gamification/', include('gamification.urls')),
     path('api/', include('blog.urls')),
     path('sitemap.xml', sitemap_xml, name='sitemap'),
     path('robots.txt', robots_txt, name='robots'),

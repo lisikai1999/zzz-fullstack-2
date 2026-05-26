@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 import markdown
+import uuid
 
 
 class Tag(models.Model):
@@ -48,7 +49,13 @@ class Article(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title, allow_unicode=True) or f'article-{self.pk or "new"}'
+            base_slug = slugify(self.title, allow_unicode=True) or f'article-{uuid.uuid4().hex[:8]}'
+            slug = base_slug
+            counter = 1
+            while Article.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f'{base_slug}-{counter}'
+                counter += 1
+            self.slug = slug
         if self.content:
             self.content_html = markdown.markdown(
                 self.content,
@@ -98,3 +105,24 @@ class Image(models.Model):
 
     def __str__(self):
         return self.alt_text or self.image.name
+
+
+class ArticleCollaborator(models.Model):
+    PERMISSION_CHOICES = [
+        ('edit', '可编辑'),
+        ('view', '仅查看'),
+    ]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='collaborators')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shared_articles')
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    permission = models.CharField(max_length=10, choices=PERMISSION_CHOICES, default='edit')
+    accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['article', 'user']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.username} on {self.article.title}'
