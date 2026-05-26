@@ -1,13 +1,17 @@
+from datetime import timedelta
+
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from .models import Tag, Article, Comment, Image, ReadStat, ArticleCollaborator
 from .serializers import (
     TagSerializer, ArticleListSerializer, ArticleDetailSerializer,
-    CommentSerializer, ImageSerializer, ArticleCollaboratorSerializer
+    CommentSerializer, ImageSerializer, ArticleCollaboratorSerializer,
+    ReadStatSerializer
 )
 
 
@@ -97,14 +101,24 @@ class ArticleViewSet(viewsets.ModelViewSet):
         ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
         if ',' in ip:
             ip = ip.split(',')[0].strip()
-        ReadStat.objects.create(
+
+        time_threshold = timezone.now() - timedelta(hours=1)
+        already_viewed = ReadStat.objects.filter(
             article=article,
             ip_address=ip,
-            user_agent=request.META.get('HTTP_USER_AGENT', ''),
-            referer=request.META.get('HTTP_REFERER', '')
-        )
-        article.views_count += 1
-        article.save(update_fields=['views_count'])
+            created_at__gte=time_threshold,
+        ).exists()
+
+        if not already_viewed:
+            ReadStat.objects.create(
+                article=article,
+                ip_address=ip,
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                referer=request.META.get('HTTP_REFERER', '')
+            )
+            article.views_count += 1
+            article.save(update_fields=['views_count'])
+
         return Response({'views_count': article.views_count})
 
 
@@ -115,7 +129,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         queryset = Comment.objects.filter(is_approved=True)
         article_id = self.request.query_params.get('article')
         if article_id:
-            queryset = queryset.filter(article_id=article_id)
+            queryset = queryset.filter(article_id=article_id, parent=None)
         return queryset
 
     def get_permissions(self):
@@ -213,3 +227,66 @@ class CollaborationViewSet(viewsets.ModelViewSet):
             return Response({'error': '无权操作'}, status=status.HTTP_403_FORBIDDEN)
         collab.delete()
         return Response({'status': 'rejected'})
+
+
+@api_view(['GET'])
+def my_reading_stats(request):
+    articles = Article.objects.filter(author=request.user)
+
+    article_id = request.query_params.get('article')
+    if article_id:
+        articles = articles.filter(id=article_id)
+
+    total_views = sum(articles.values_list('views_count', flat=True))
+    total_articles = articles.count()
+
+    articles_stats = []
+    for article in articles.order_by('-views_count')[:20]:
+        articles_stats.append({
+            'id': article.id,
+            'title': article.title,
+            'slug': article.slug,
+            'views_count': article.views_count,
+            'created_at': article.created_at,
+        })
+
+    daily_views = (
+        ReadStat.objects.filter(article__author=request.user)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('-date')[:30]
+    )
+
+    return Response({
+        'total_views': total_views,
+        'total_articles': total_articles,
+        'articles': articles_stats,
+        'daily_views': list(daily_views),
+    })
+
+
+@api_view(['GET'])
+def article_read_stats(request, article_id):
+    try:
+        article = Article.objects.get(id=article_id, author=request.user)
+    except Article.DoesNotExist:
+        return Response({'error': '文章不存在或无权限'}, status=status.HTTP_404_NOT_FOUND)
+
+    stats = ReadStat.objects.filter(article=article).order_by('-created_at')[:50]
+    serializer = ReadStatSerializer(stats, many=True)
+
+    daily_views = (
+        ReadStat.objects.filter(article=article)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('-date')[:30]
+    )
+
+    return Response({
+        'article_title': article.title,
+        'views_count': article.views_count,
+        'recent_visits': serializer.data,
+        'daily_views': list(daily_views),
+    })

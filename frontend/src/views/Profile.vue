@@ -105,6 +105,103 @@
           </router-link>
         </div>
       </div>
+
+      <!-- Reading Statistics (own profile, author only) -->
+      <div v-if="isOwnProfile && readingStatsData" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mt-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">文章阅读统计</h2>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="text-2xl font-bold text-primary-600">{{ readingStatsData.total_views }}</div>
+            <div class="text-xs text-gray-400">总阅读量</div>
+          </div>
+          <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="text-2xl font-bold text-primary-600">{{ readingStatsData.total_articles }}</div>
+            <div class="text-xs text-gray-400">文章总数</div>
+          </div>
+        </div>
+
+        <!-- Daily Views Chart -->
+        <div v-if="readingStatsData.daily_views.length" class="mb-6">
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">近30天每日阅读趋势</h3>
+          <div class="flex items-end gap-1 h-24">
+            <div
+              v-for="day in readingStatsData.daily_views.slice().reverse()"
+              :key="day.date"
+              :title="`${day.date}: ${day.count} 次阅读`"
+              class="flex-1 bg-primary-400 dark:bg-primary-500 rounded-t min-h-[4px] hover:bg-primary-600 transition cursor-pointer"
+              :style="{ height: getBarHeight(day.count) + '%' }"
+            ></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-400 mt-1">
+            <span>{{ readingStatsData.daily_views[readingStatsData.daily_views.length - 1]?.date }}</span>
+            <span>{{ readingStatsData.daily_views[0]?.date }}</span>
+          </div>
+        </div>
+
+        <!-- Per-article Stats -->
+        <div v-if="readingStatsData.articles.length">
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">各文章阅读量</h3>
+          <div class="space-y-2">
+            <div
+              v-for="art in readingStatsData.articles"
+              :key="art.id"
+              class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700 last:border-0"
+            >
+              <router-link :to="`/article/${art.slug}`" class="text-gray-800 dark:text-gray-200 hover:text-primary-600 transition truncate flex-1 mr-4">
+                {{ art.title }}
+              </router-link>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-primary-600">{{ art.views_count }}</span>
+                <button
+                  @click="showArticleDetail(art.id)"
+                  class="text-xs text-gray-400 hover:text-primary-600 transition underline"
+                >详情</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Article Detail Stats Modal -->
+        <div v-if="articleDetailStats" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="articleDetailStats = null">
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ articleDetailStats.article_title }}</h3>
+              <button @click="articleDetailStats = null" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">总阅读量: <span class="font-bold text-primary-600">{{ articleDetailStats.views_count }}</span></p>
+
+            <div v-if="articleDetailStats.daily_views.length" class="mb-4">
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">每日趋势</h4>
+              <div class="flex items-end gap-1 h-16">
+                <div
+                  v-for="day in articleDetailStats.daily_views.slice().reverse()"
+                  :key="day.date"
+                  :title="`${day.date}: ${day.count} 次`"
+                  class="flex-1 bg-primary-400 rounded-t min-h-[2px]"
+                  :style="{ height: getDetailBarHeight(day.count) + '%' }"
+                ></div>
+              </div>
+            </div>
+
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">最近访问记录</h4>
+            <div class="space-y-2 text-xs">
+              <div
+                v-for="visit in articleDetailStats.recent_visits"
+                :key="visit.id"
+                class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+              >
+                <div class="flex justify-between mb-1">
+                  <span class="font-mono text-gray-600 dark:text-gray-400">{{ visit.ip_address }}</span>
+                  <span class="text-gray-400">{{ formatDateTime(visit.created_at) }}</span>
+                </div>
+                <div class="text-gray-400 truncate" :title="visit.user_agent">UA: {{ visit.user_agent?.substring(0, 80) }}{{ visit.user_agent?.length > 80 ? '...' : '' }}</div>
+                <div v-if="visit.referer" class="text-gray-400 truncate">来源: {{ visit.referer }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
     <div v-else class="text-center py-12 text-gray-400">用户不存在</div>
@@ -122,6 +219,8 @@ const auth = useAuthStore()
 const loading = ref(true)
 const profileData = ref(null)
 const readingHistory = ref([])
+const readingStatsData = ref(null)
+const articleDetailStats = ref(null)
 
 const allAchievements = [
   { type: 'streak_7', name: '连续阅读7天', icon: '🔥' },
@@ -158,6 +257,31 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('zh-CN')
 }
 
+function formatDateTime(dateStr) {
+  return new Date(dateStr).toLocaleString('zh-CN')
+}
+
+function getBarHeight(count) {
+  if (!readingStatsData.value?.daily_views.length) return 0
+  const max = Math.max(...readingStatsData.value.daily_views.map(d => d.count))
+  return max > 0 ? Math.max(5, (count / max) * 100) : 5
+}
+
+function getDetailBarHeight(count) {
+  if (!articleDetailStats.value?.daily_views.length) return 0
+  const max = Math.max(...articleDetailStats.value.daily_views.map(d => d.count))
+  return max > 0 ? Math.max(5, (count / max) * 100) : 5
+}
+
+async function showArticleDetail(articleId) {
+  try {
+    const { data } = await api.get(`/reading-stats/${articleId}/`)
+    articleDetailStats.value = data
+  } catch (e) {
+    articleDetailStats.value = null
+  }
+}
+
 async function fetchProfile() {
   loading.value = true
   try {
@@ -170,6 +294,11 @@ async function fetchProfile() {
       try {
         const histRes = await api.get('/gamification/history/')
         readingHistory.value = (histRes.data.results || histRes.data).slice(0, 20)
+      } catch (e) {}
+
+      try {
+        const statsRes = await api.get('/reading-stats/')
+        readingStatsData.value = statsRes.data
       } catch (e) {}
     }
   } catch (e) {

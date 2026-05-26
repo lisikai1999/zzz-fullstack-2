@@ -95,6 +95,9 @@ class ReadStat(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['article', 'ip_address', '-created_at']),
+        ]
 
 
 class Image(models.Model):

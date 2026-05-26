@@ -37,7 +37,7 @@
           </p>
           <div v-if="xpNotification.new_achievements?.length" class="mt-2">
             <span v-for="ach in xpNotification.new_achievements" :key="ach.id" class="text-sm text-yellow-600 dark:text-yellow-400 mr-2">
-              🏆 {{ ach.display_name }}
+              {{ ach.display_name }}
             </span>
           </div>
         </div>
@@ -82,12 +82,14 @@
       </div>
     </div>
 
+    <!-- Comments Section -->
     <section v-if="article" class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-10">
       <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-        评论 ({{ comments.length }})
+        评论 ({{ totalCommentCount }})
       </h3>
 
-      <form @submit.prevent="submitComment" class="mb-8">
+      <!-- Top-level comment form -->
+      <form @submit.prevent="submitComment(null)" class="mb-8">
         <div v-if="!auth.isAuthenticated" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <input
             v-model="commentForm.nickname"
@@ -119,23 +121,17 @@
         </button>
       </form>
 
+      <!-- Recursive comment tree -->
       <div class="space-y-6">
-        <div v-for="comment in comments" :key="comment.id" class="border-b border-gray-50 dark:border-gray-700 pb-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-medium text-gray-700 dark:text-gray-300">{{ comment.author_name }}</span>
-            <span class="text-xs text-gray-400">{{ formatDate(comment.created_at) }}</span>
-          </div>
-          <p class="text-gray-600 dark:text-gray-400">{{ comment.content }}</p>
-          <div v-if="comment.replies?.length" class="ml-6 mt-4 space-y-4">
-            <div v-for="reply in comment.replies" :key="reply.id" class="border-l-2 border-primary-100 dark:border-primary-800 pl-4">
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ reply.author_name }}</span>
-                <span class="text-xs text-gray-400">{{ formatDate(reply.created_at) }}</span>
-              </div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ reply.content }}</p>
-            </div>
-          </div>
-        </div>
+        <CommentItem
+          v-for="comment in comments"
+          :key="comment.id"
+          :comment="comment"
+          :depth="0"
+          :is-authenticated="auth.isAuthenticated"
+          :submitting="submitting"
+          @reply="submitComment"
+        />
       </div>
     </section>
   </div>
@@ -149,6 +145,7 @@ import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import { useAuthStore } from '../stores/auth'
 import api from '../api'
+import CommentItem from '../components/CommentItem.vue'
 
 marked.setOptions({
   highlight(code, lang) {
@@ -179,6 +176,18 @@ const renderedContent = computed(() => {
   return DOMPurify.sanitize(marked(article.value.content))
 })
 
+const totalCommentCount = computed(() => {
+  function countAll(list) {
+    let c = 0
+    for (const item of list) {
+      c += 1
+      if (item.replies?.length) c += countAll(item.replies)
+    }
+    return c
+  }
+  return countAll(comments.value)
+})
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('zh-CN')
@@ -200,21 +209,25 @@ async function shareArticle() {
   }
 }
 
-async function submitComment() {
+async function submitComment(parentId, replyData) {
   submitting.value = true
   try {
-    await api.post('/comments/', {
-      article: article.value.id,
-      content: commentForm.value.content,
-      nickname: commentForm.value.nickname,
-      email: commentForm.value.email,
-    })
-    commentForm.value.content = ''
-    const { data } = await api.get('/comments/', { params: { article: article.value.id } })
-    comments.value = (data.results || data).filter(c => !c.parent)
+    const payload = parentId
+      ? { article: article.value.id, content: replyData.content, parent: parentId, nickname: replyData.nickname || '', email: replyData.email || '' }
+      : { article: article.value.id, content: commentForm.value.content, nickname: commentForm.value.nickname, email: commentForm.value.email }
+
+    await api.post('/comments/', payload)
+
+    if (!parentId) commentForm.value.content = ''
+    await refreshComments()
   } finally {
     submitting.value = false
   }
+}
+
+async function refreshComments() {
+  const { data } = await api.get('/comments/', { params: { article: article.value.id } })
+  comments.value = data.results || data
 }
 
 onMounted(async () => {
@@ -222,8 +235,7 @@ onMounted(async () => {
     const { data } = await api.get(`/articles/${route.params.slug}/`)
     article.value = data
     api.post(`/articles/${route.params.slug}/record_view/`)
-    const commentsRes = await api.get('/comments/', { params: { article: data.id } })
-    comments.value = (commentsRes.data.results || commentsRes.data).filter(c => !c.parent)
+    await refreshComments()
 
     if (auth.isAuthenticated) {
       try {

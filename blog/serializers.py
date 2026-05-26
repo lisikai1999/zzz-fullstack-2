@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tag, Article, Comment, Image, ArticleCollaborator
+from .models import Tag, Article, Comment, Image, ArticleCollaborator, ReadStat
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -71,7 +71,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['author', 'content_html', 'views_count', 'slug']
 
     def get_comments(self, obj):
-        top_comments = obj.comments.filter(parent=None, is_approved=True)
+        top_comments = obj.comments.filter(parent=None, is_approved=True).order_by('-created_at')
         return CommentSerializer(top_comments, many=True).data
 
 
@@ -109,3 +109,9 @@ class ArticleCollaboratorSerializer(serializers.ModelSerializer):
             except User.DoesNotExist:
                 raise serializers.ValidationError('用户不存在')
         return value
+
+
+class ReadStatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReadStat
+        fields = ['id', 'ip_address', 'user_agent', 'referer', 'created_at']

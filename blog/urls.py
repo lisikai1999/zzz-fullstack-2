@@ -12,4 +12,6 @@ router.register(r'collaborations', views.CollaborationViewSet, basename='collabo
 urlpatterns = [
     path('', include(router.urls)),
     path('stats/', views.site_stats, name='site-stats'),
+    path('reading-stats/', views.my_reading_stats, name='my-reading-stats'),
+    path('reading-stats/<int:article_id>/', views.article_read_stats, name='article-read-stats'),
 ]
